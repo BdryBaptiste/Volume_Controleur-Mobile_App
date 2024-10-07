@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
 
         // Configurer Retrofit
         val retrofit = Retrofit.Builder()
-            .baseUrl("http://192.168.1.194:5000/")
+            .baseUrl("http://192.168.1.35:5000/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 

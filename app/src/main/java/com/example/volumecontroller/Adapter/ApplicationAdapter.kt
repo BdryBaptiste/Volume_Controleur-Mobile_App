@@ -46,7 +46,7 @@ class ApplicationAdapter(private val apiService: ApiService) :
 
         fun bind(appName: String) {
             // Charger l'icône de l'application
-            val iconUrl = "http://192.168.1.194:5000/applications/$appName/icon"
+            val iconUrl = "http://192.168.1.35:5000/applications/$appName/icon"
 
             Glide.with(binding.root.context)
                 .load(iconUrl)
@@ -75,8 +75,7 @@ class ApplicationAdapter(private val apiService: ApiService) :
                     if (response.isSuccessful) {
                         val volume = response.body()?.volume ?: 0f
                         val progress = (volume * 100).toInt()
-                        // Ajuster le progress en fonction de la rotation (si nécessaire)
-                        popupBinding.volumeSeekBar.progress = 100 - progress
+                        popupBinding.volumeSeekBar.progress = progress
                     }
                 }
 
@@ -104,7 +103,7 @@ class ApplicationAdapter(private val apiService: ApiService) :
             popupBinding.volumeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     if (fromUser) {
-                        val volumeFraction = (100 - progress) / 100.0f
+                        val volumeFraction = progress / 100.0f
                         apiService.setVolume(appName, VolumeRequest(volumeFraction)).enqueue(object : Callback<VolumeResponse> {
                             override fun onResponse(call: Call<VolumeResponse>, response: Response<VolumeResponse>) {
                                 Log.d("ApplicationAdapter", "Volume changé pour $appName à $volumeFraction")
