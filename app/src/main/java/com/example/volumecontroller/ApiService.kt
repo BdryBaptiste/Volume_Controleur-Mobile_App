@@ -1,7 +1,6 @@
 package com.example.volumecontroller
 
-import com.example.volumecontroller.models.ApplicationsResponse
-import com.example.volumecontroller.models.VolumeResponse
+import com.example.volumecontroller.models.*
 import retrofit2.Call
 import retrofit2.http.*
 
@@ -18,6 +17,13 @@ interface ApiService {
         @Path("process_name") processName: String,
         @Body volumeRequest: VolumeRequest
     ): Call<VolumeResponse>
-}
 
-data class VolumeRequest(val volume: Float)
+    @GET("applications/{process_name}/mute_status")
+    fun getMuteStatus(@Path("process_name") processName: String): Call<MuteStatusResponse>
+
+    @POST("applications/{process_name}/mute")
+    fun changeMuteStatus(
+        @Path("process_name") processName: String,
+        @Body actionRequest: MuteActionRequest
+    ): Call<MuteResponse>
+}
