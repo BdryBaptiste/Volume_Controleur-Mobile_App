@@ -5,4 +5,10 @@
         android:icon="@drawable/ic_refresh"
         android:title="action_refresh"
         app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_change_server"
+        android:icon="@drawable/ic_ip_edit"
+        android:title="change_server"
+        android:showAsAction="always" />
 </menu>

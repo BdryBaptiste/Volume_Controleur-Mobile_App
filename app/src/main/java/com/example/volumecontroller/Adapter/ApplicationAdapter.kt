@@ -18,6 +18,7 @@ import com.example.volumecontroller.models.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import com.example.volumecontroller.PreferenceManager
 
 class ApplicationAdapter(private val apiService: ApiService) :
     RecyclerView.Adapter<ApplicationAdapter.ApplicationViewHolder>() {
@@ -46,7 +47,8 @@ class ApplicationAdapter(private val apiService: ApiService) :
 
         fun bind(appName: String) {
             // Charger l'icône de l'application
-            val iconUrl = "http://192.168.1.35:5000/applications/$appName/icon"
+            val serverAddress = PreferenceManager.getServerAddress(binding.root.context)
+            val iconUrl = "${serverAddress}applications/$appName/icon"
 
             Glide.with(binding.root.context)
                 .load(iconUrl)
@@ -74,7 +76,7 @@ class ApplicationAdapter(private val apiService: ApiService) :
                 override fun onResponse(call: Call<VolumeResponse>, response: Response<VolumeResponse>) {
                     if (response.isSuccessful) {
                         val volume = response.body()?.volume ?: 0f
-                        val progress = (volume * 100).toInt()
+                        val progress = volume.toInt()
                         popupBinding.volumeSeekBar.progress = progress
                     }
                 }
