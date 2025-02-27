@@ -11,6 +11,12 @@
         android:background="?attr/colorPrimary"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar" />
 
+    <Spinner
+        android:id="@+id/deviceSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"/>
+
     <!-- ViewPager2 pour les pages -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"

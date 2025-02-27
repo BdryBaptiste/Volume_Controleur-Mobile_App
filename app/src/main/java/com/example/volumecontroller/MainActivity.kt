@@ -5,44 +5,45 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.EditText
+import android.view.View
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
-import com.example.volumecontroller.Adapter.ApplicationAdapter
 import com.example.volumecontroller.databinding.ActivityMainBinding
-import com.example.volumecontroller.models.ApplicationsResponse
-import com.example.volumecontroller.models.DeviceListResponse
-import com.example.volumecontroller.models.DeviceResponse
+import com.example.volumecontroller.models.*
 import com.tbuonomo.viewpagerdotsindicator.DotsIndicator
 import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
 
-class
-MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    lateinit var apiService: ApiService // Rendue accessible à PageFragment
+    lateinit var apiService: ApiService
+    private lateinit var retrofit: Retrofit
+    private lateinit var deviceSpinner: Spinner
     private lateinit var viewPager: ViewPager2
     private lateinit var dotsIndicator: DotsIndicator
-    private lateinit var retrofit: Retrofit
+
+    private var deviceList: List<String> = emptyList()
+    private var defaultDevice: String = ""
+    private var isInitialLoad = true // Prevent unnecessary API calls
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // For View Binding
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Configurer Retrofit
         initRetrofit()
+        setupSpinner()
+        loadDevices() // Fetch list of devices
+        loadDefaultDevice() // Fetch the default device
 
-        // Initialiser ViewPager2 et DotsIndicator
         viewPager = binding.viewPager
         dotsIndicator = binding.dotsIndicator
 
-        // Charger les applications
         loadApplications()
 
         setSupportActionBar(binding.toolbar)
@@ -66,12 +67,10 @@ MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_refresh -> {
-                // Action lorsque le bouton Actualiser est cliqué
                 loadApplications()
                 true
             }
             R.id.action_change_server -> {
-                // Action pour modifier l'adresse du serveur
                 showChangeServerDialog()
                 true
             }
@@ -85,54 +84,103 @@ MainActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     val applications = response.body()?.applications ?: emptyList()
                     setupViewPager(applications)
-                    Log.d("MainActivity", "Chargement des applications...")
                 }
             }
 
             override fun onFailure(call: Call<ApplicationsResponse>, t: Throwable) {
-                Log.e("API_ERROR", "Erreur lors de l'appel API", t)
+                Log.e("API_ERROR", "Error fetching applications", t)
             }
         })
     }
 
-    private fun loadDevices(){
+    private fun setupSpinner() {
+        deviceSpinner = findViewById(R.id.deviceSpinner)
+        deviceSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (isInitialLoad) {
+                    isInitialLoad = false // Prevents unnecessary API call at first load
+                    return
+                }
+                val selectedDevice = deviceList[position]
+                if (selectedDevice != defaultDevice) {
+                    switchDefaultDevice(selectedDevice)
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
+    private fun loadDevices() {
         apiService.getDevices().enqueue(object : Callback<DeviceListResponse> {
             override fun onResponse(call: Call<DeviceListResponse>, response: Response<DeviceListResponse>) {
                 if (response.isSuccessful) {
-                    val devices = response.body()?.devices ?: emptyList()
-                    Log.d("MainActivity", "Chargement des devices...")
+                    deviceList = response.body()?.devices ?: emptyList()
+                    updateSpinner()
                 }
             }
 
             override fun onFailure(call: Call<DeviceListResponse>, t: Throwable) {
-                Log.e("API_ERROR", "Erreur lors de l'appel API", t)
+                Log.e("API_ERROR", "Error fetching devices", t)
             }
         })
     }
 
-    private fun loadDefaultDevice(){
+    private fun loadDefaultDevice() {
         apiService.getDefaultDevice().enqueue(object : Callback<DeviceResponse> {
             override fun onResponse(call: Call<DeviceResponse>, response: Response<DeviceResponse>) {
                 if (response.isSuccessful) {
-                    val defaultDevice = response.body()?.device ?: ""
-                    Log.d("MainActivity", "Chargement du device par defaut...")
+                    defaultDevice = response.body()?.device ?: ""
+                    updateSpinner()
                 }
             }
 
             override fun onFailure(call: Call<DeviceResponse>, t: Throwable) {
-                Log.e("API_ERROR", "Erreur lors de l'appel API", t)
+                Log.e("API_ERROR", "Error fetching default device", t)
+            }
+        })
+    }
+
+    private fun updateSpinner() {
+        if (deviceList.isNotEmpty()) {
+            val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, deviceList)
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            deviceSpinner.adapter = adapter
+
+            val defaultIndex = deviceList.indexOf(defaultDevice)
+            if (defaultIndex >= 0) {
+                deviceSpinner.setSelection(defaultIndex)
+            }
+        }
+    }
+
+    private fun switchDefaultDevice(newDevice: String) {
+        val deviceRequest = DeviceRequest(newDevice)
+
+        apiService.setDefaultDevice(newDevice).enqueue(object : Callback<DeviceRequest> {
+            override fun onResponse(call: Call<DeviceRequest>, response: Response<DeviceRequest>) {
+                if (response.isSuccessful) {
+                    Toast.makeText(this@MainActivity, "Device switched to $newDevice", Toast.LENGTH_SHORT).show()
+                    defaultDevice = newDevice
+                    isInitialLoad = true // Prevent re-triggering selection event
+                    updateSpinner()
+                } else {
+                    Toast.makeText(this@MainActivity, "Failed to switch device", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<DeviceRequest>, t: Throwable) {
+                Toast.makeText(this@MainActivity, "Error switching device", Toast.LENGTH_SHORT).show()
             }
         })
     }
 
     private fun setupViewPager(applications: List<String>) {
-        // Diviser les applications en pages
-        val appsPerPage = 2 * 5 // 2 lignes * 5 colonnes
+        val appsPerPage = 2 * 5 // 2 rows * 5 columns
         val pages = applications.chunked(appsPerPage)
 
         val pagerAdapter = object : androidx.viewpager2.adapter.FragmentStateAdapter(this) {
             override fun getItemCount(): Int = pages.size
-
             override fun createFragment(position: Int): Fragment {
                 return PageFragment.newInstance(pages[position])
             }
@@ -146,21 +194,22 @@ MainActivity : AppCompatActivity() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_change_server, null)
         val serverAddressEditText = dialogView.findViewById<EditText>(R.id.serverAddressEditText)
 
-        // Pré-remplir avec l'adresse actuelle
         serverAddressEditText.setText(PreferenceManager.getServerAddress(this))
 
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Modifier l'adresse du serveur")
+            .setTitle("Modify Server Address")
             .setView(dialogView)
-            .setPositiveButton("Enregistrer") { _, _ ->
+            .setPositiveButton("Save") { _, _ ->
                 val newAddress = serverAddressEditText.text.toString()
                 if (newAddress.isNotEmpty()) {
                     PreferenceManager.setServerAddress(this, newAddress)
-                    initRetrofit() // Réinitialiser Retrofit avec la nouvelle adresse
-                    loadApplications() // Recharger les applications
+                    initRetrofit()
+                    loadApplications()
+                    loadDevices()
+                    loadDefaultDevice()
                 }
             }
-            .setNegativeButton("Annuler", null)
+            .setNegativeButton("Cancel", null)
             .create()
 
         dialog.show()
