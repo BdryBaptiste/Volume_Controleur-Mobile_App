@@ -1,5 +1,4 @@
 package com.example.volumecontroller.models
-
-data class DeviceResponse(
+data class DeviceRequest(
     val device: String
 )

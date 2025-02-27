@@ -26,4 +26,15 @@ interface ApiService {
         @Path("process_name") processName: String,
         @Body actionRequest: MuteActionRequest
     ): Call<MuteResponse>
+
+    @GET("devices")
+    fun getDevices(): Call<DeviceListResponse>
+
+    @GET("devices/default")
+    fun getDefaultDevice(): Call<DeviceResponse>
+
+    @POST("devices/default/{device_id}")
+    fun setDefaultDevice(
+        @Path("device_id") deviceId: String
+    ): Call<DeviceRequest>
 }

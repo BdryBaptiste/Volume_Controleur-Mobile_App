@@ -13,6 +13,8 @@ import androidx.viewpager2.widget.ViewPager2
 import com.example.volumecontroller.Adapter.ApplicationAdapter
 import com.example.volumecontroller.databinding.ActivityMainBinding
 import com.example.volumecontroller.models.ApplicationsResponse
+import com.example.volumecontroller.models.DeviceListResponse
+import com.example.volumecontroller.models.DeviceResponse
 import com.tbuonomo.viewpagerdotsindicator.DotsIndicator
 import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
@@ -88,6 +90,36 @@ MainActivity : AppCompatActivity() {
             }
 
             override fun onFailure(call: Call<ApplicationsResponse>, t: Throwable) {
+                Log.e("API_ERROR", "Erreur lors de l'appel API", t)
+            }
+        })
+    }
+
+    private fun loadDevices(){
+        apiService.getDevices().enqueue(object : Callback<DeviceListResponse> {
+            override fun onResponse(call: Call<DeviceListResponse>, response: Response<DeviceListResponse>) {
+                if (response.isSuccessful) {
+                    val devices = response.body()?.devices ?: emptyList()
+                    Log.d("MainActivity", "Chargement des devices...")
+                }
+            }
+
+            override fun onFailure(call: Call<DeviceListResponse>, t: Throwable) {
+                Log.e("API_ERROR", "Erreur lors de l'appel API", t)
+            }
+        })
+    }
+
+    private fun loadDefaultDevice(){
+        apiService.getDefaultDevice().enqueue(object : Callback<DeviceResponse> {
+            override fun onResponse(call: Call<DeviceResponse>, response: Response<DeviceResponse>) {
+                if (response.isSuccessful) {
+                    val defaultDevice = response.body()?.device ?: ""
+                    Log.d("MainActivity", "Chargement du device par defaut...")
+                }
+            }
+
+            override fun onFailure(call: Call<DeviceResponse>, t: Throwable) {
                 Log.e("API_ERROR", "Erreur lors de l'appel API", t)
             }
         })
